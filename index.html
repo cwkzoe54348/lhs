@@ -1,64 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
-
-<script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyC4aNRvVxHbnievs1bEXbn6sZ69AoPXoFA",
-      authDomain: "libertyville-historical.firebaseapp.com",
-      databaseURL: "https://libertyville-historical-default-rtdb.firebaseio.com",
-      projectId: "libertyville-historical",
-      storageBucket: "libertyville-historical.firebasestorage.app",
-      messagingSenderId: "573948661145",
-      appId: "1:573948661145:web:6211a30710ea68ea281708",
-      measurementId: "G-K1TN0ZLSPP"
-};
-
-    const app = firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-</script>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Libertyville Historical Society Orders</title>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <script src="app.js" defer></script>
 </head>
 <body>
-    <h1>Libertyville Historical Society Orders</h1>
-
-    <div id="items">
-        <label>Libertyville/Jim Moran ($20): </label><input type="number" id="jimMoran" value="0"><br>
-        <label>Libertyville: Then and Now ($20): </label><input type="number" id="thenAndNow" value="0"><br>
-        <label>LHS Athletics 100/Eggert ($20): </label><input type="number" id="lhsAthletics" value="0"><br>
-        <label>Notecards (set of 10) ($8): </label><input type="number" id="notecards" value="0"><br>
-        <label>Postcards ($1): </label><input type="number" id="postcards" value="0"><br>
-        <label>Plates ($5): </label><input type="number" id="plates" value="0"><br>
-        <label>Shellenberger print- 4th of July ($10): </label><input type="number" id="julyPrint" value="0"><br>
-        <label>Shellenberger print- Fall ($10): </label><input type="number" id="fallPrint" value="0"><br>
-        <label>Shellenberger print- Summer ($10): </label><input type="number" id="summerPrint" value="0"><br>
-        <label>Donation: $</label><input type="number" id="donation" value="0"><br>
+    <div id="signInForm">
+        <h1>Sign In</h1>
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" placeholder="Enter email" required />
+        </div>
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter password" required />
+        </div>
+        <button id="signInBtn">Sign In</button>
+        <p id="error-message" style="color: red;"></p>
     </div>
 
-    <br>
-    <label>Payment Method: </label>
-    <select id="paymentMethod">
-        <option value="PayPal">PayPal</option>
-        <option value="Cash">Cash</option>
-    </select>
+    <div id="orderForm" style="display: none;">
+        <h1>Libertyville Historical Society Orders</h1>
+        <div id="itemList"></div>
 
-    <br>
-    <h3>Total: $<span id="total">0</span></h3>
-    <button onclick="submitOrder()">Submit Order</button>
+        <div>
+            <label for="donation">Donation Amount: $</label>
+            <input type="number" id="donation" placeholder="Enter donation" />
+        </div>
 
-    <hr>
+        <h3>Total: $<span id="totalPrice">0</span></h3>
 
-    <h2>Sales Report</h2>
-    <p>PayPal Sales: $<span id="paypalTotal">0</span></p>
-    <p>Cash Sales: $<span id="cashTotal">0</span></p>
+        <div>
+            <label for="paymentMethod">Payment Method: </label>
+            <select id="paymentMethod">
+                <option value="">Select Payment Method</option>
+                <option value="PayPal">PayPal</option>
+                <option value="Cash">Cash</option>
+            </select>
+        </div>
 
-    <script src="app.js"></script>
+        <button id="submitOrderBtn">Submit Order</button>
+
+        <hr />
+
+        <h2>Sales Report</h2>
+        <p>PayPal Sales: $<span id="paypalTotal">0</span></p>
+        <p>Cash Sales: $<span id="cashTotal">0</span></p>
+    </div>
 </body>
 </html>
+
