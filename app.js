@@ -1,79 +1,134 @@
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyC4aNRvVxHbnievs1bEXbn6sZ69AoPXoFA",
-  authDomain: "libertyville-historical.firebaseapp.com",
-  databaseURL: "https://libertyville-historical-default-rtdb.firebaseio.com",
-  projectId: "libertyville-historical",
-  storageBucket: "libertyville-historical.firebasestorage.app",
-  messagingSenderId: "573948661145",
-  appId: "1:573948661145:web:6211a30710ea68ea281708",
-  measurementId: "G-K1TN0ZLSPP"
-};
+import { auth, database, ref, set, push, onValue, signInWithEmailAndPassword, onAuthStateChanged, signOut } from './firebase.js';
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+document.addEventListener("DOMContentLoaded", function() {
+    const orderForm = document.getElementById("orderForm");
+    const signInForm = document.getElementById("signInForm");
+    const submitOrderBtn = document.getElementById("submitOrderBtn");
+    const signInBtn = document.getElementById("signInBtn");
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const donationInput = document.getElementById("donation");
+    const paymentMethodInput = document.getElementById("paymentMethod");
+    const totalPriceSpan = document.getElementById("totalPrice");
+    const paypalTotalSpan = document.getElementById("paypalTotal");
+    const cashTotalSpan = document.getElementById("cashTotal");
+    const itemList = document.getElementById("itemList");
+    const errorMessage = document.getElementById("error-message");
 
-// Function to calculate the total price
-function calculateTotal() {
-    let total = 0;
-    total += parseInt(document.getElementById('jimMoran').value) * 20;
-    total += parseInt(document.getElementById('thenAndNow').value) * 20;
-    total += parseInt(document.getElementById('lhsAthletics').value) * 20;
-    total += parseInt(document.getElementById('notecards').value) * 8;
-    total += parseInt(document.getElementById('postcards').value) * 1;
-    total += parseInt(document.getElementById('plates').value) * 5;
-    total += parseInt(document.getElementById('julyPrint').value) * 10;
-    total += parseInt(document.getElementById('fallPrint').value) * 10;
-    total += parseInt(document.getElementById('summerPrint').value) * 10;
-    total += parseInt(document.getElementById('donation').value); // Donation amount
+    let order = {};
+    let totalPrice = 0;
 
-    document.getElementById('total').innerText = total;
-    return total;
-}
+    const items = [
+        { name: "Libertyville/Jim Moran", price: 20 },
+        { name: "Libertyville: Then and Now", price: 20 },
+        { name: "LHS Athletics 100/Eggert", price: 20 },
+        { name: "Notecards (set of 10)", price: 8 },
+        { name: "Postcards", price: 1 },
+        { name: "Plates", price: 5 },
+        { name: "Shellenberger print- 4th of July", price: 10 },
+        { name: "Shellenberger print- Fall", price: 10 },
+        { name: "Shellenberger print- Summer", price: 10 }
+    ];
 
-// Submit Order function
-function submitOrder() {
-    const order = {
-        jimMoran: document.getElementById('jimMoran').value,
-        thenAndNow: document.getElementById('thenAndNow').value,
-        lhsAthletics: document.getElementById('lhsAthletics').value,
-        notecards: document.getElementById('notecards').value,
-        postcards: document.getElementById('postcards').value,
-        plates: document.getElementById('plates').value,
-        julyPrint: document.getElementById('julyPrint').value,
-        fallPrint: document.getElementById('fallPrint').value,
-        summerPrint: document.getElementById('summerPrint').value,
-        donation: document.getElementById('donation').value,
-        total: calculateTotal(),
-        paymentMethod: document.getElementById('paymentMethod').value,
-        timestamp: new Date().toISOString(),
-    };
-
-    // Add order to Firebase
-    const orderRef = database.ref('orders').push();
-    orderRef.set(order);
-}
-
-// Real-time Sales Report (PayPal / Cash Sales)
-function updateSalesReport() {
-    const salesRef = database.ref('orders');
-    salesRef.on('value', (snapshot) => {
-        let paypalTotal = 0;
-        let cashTotal = 0;
-        snapshot.forEach((order) => {
-            if (order.val().paymentMethod === 'PayPal') {
-                paypalTotal += order.val().total;
-            } else if (order.val().paymentMethod === 'Cash') {
-                cashTotal += order.val().total;
-            }
-        });
-
-        // Update sales report
-        document.getElementById('paypalTotal').innerText = paypalTotal;
-        document.getElementById('cashTotal').innerText = cashTotal;
+    items.forEach(item => {
+        const itemDiv = document.createElement('div');
+        itemDiv.innerHTML = `<span>${item.name} - $${item.price}</span><input type="number" min="0" data-name="${item.name}" />`;
+        itemList.appendChild(itemDiv);
     });
-}
 
-// Call updateSalesReport when the page loads
-updateSalesReport();
+    signInBtn.addEventListener("click", function() {
+        const email = emailInput.value;
+        const password = passwordInput.value;
+
+        signInWithEmailAndPassword(auth, email, password)
+            .then(() => {
+                signInForm.style.display = "none";
+                orderForm.style.display = "block";
+                getSalesReport();
+            })
+            .catch((error) => {
+                errorMessage.textContent = error.message;
+            });
+    });
+
+    // Monitor auth state to handle sessions
+    onAuthStateChanged(auth, user => {
+        if (user) {
+            // Set up to handle order submission
+            submitOrderBtn.addEventListener("click", () => {
+                const donationAmount = parseFloat(donationInput.value) || 0;
+                const paymentMethod = paymentMethodInput.value;
+                const timestamp = new Date().toISOString();
+
+                let orderTotal = 0;
+                for (let itemName in order) {
+                    const item = items.find(i => i.name === itemName);
+                    orderTotal += item.price * order[itemName];
+                }
+
+                orderTotal += donationAmount;
+                totalPrice = orderTotal;
+
+                const orderRef = push(ref(database, 'orders'));
+                set(orderRef, {
+                    items: order,
+                    totalPrice: totalPrice,
+                    donationAmount: donationAmount,
+                    paymentMethod: paymentMethod,
+                    timestamp: timestamp
+                });
+
+                order = {}; // Reset order after submission
+                alert("Order submitted successfully!");
+                getSalesReport();
+            });
+
+            // Update order quantities
+            document.querySelectorAll('input[data-name]').forEach(input => {
+                input.addEventListener("change", function() {
+                    const itemName = this.getAttribute("data-name");
+                    const quantity = parseInt(this.value) || 0;
+                    order[itemName] = quantity;
+                    updateTotalPrice();
+                });
+            });
+        } else {
+            signInForm.style.display = "block";
+            orderForm.style.display = "none";
+        }
+    });
+
+    // Calculate and display total price
+    function updateTotalPrice() {
+        let total = 0;
+        for (let itemName in order) {
+            const item = items.find(i => i.name === itemName);
+            total += item.price * order[itemName];
+        }
+        const donationAmount = parseFloat(donationInput.value) || 0;
+        total += donationAmount;
+        totalPriceSpan.textContent = total;
+    }
+
+    // Get the sales report (PayPal and Cash totals)
+    function getSalesReport() {
+        const ordersRef = ref(database, 'orders');
+        onValue(ordersRef, (snapshot) => {
+            const data = snapshot.val();
+            let paypalTotal = 0;
+            let cashTotal = 0;
+
+            for (let orderId in data) {
+                const order = data[orderId];
+                if (order.paymentMethod === "PayPal") {
+                    paypalTotal += order.totalPrice;
+                } else if (order.paymentMethod === "Cash") {
+                    cashTotal += order.totalPrice;
+                }
+            }
+
+            paypalTotalSpan.textContent = paypalTotal;
+            cashTotalSpan.textContent = cashTotal;
+        });
+    }
+});
